@@ -1,0 +1,23 @@
+{
+  "name": "ccwc-rift-video",
+  "version": "0.1.0",
+  "dependencies": {
+    "webcomponents.js": "^0.7.2",
+    "ccwc-video": "git+https://github.com/creativecode-webcomponents/ccwc-video.git"
+  },
+  "devDependencies": {
+    "babel": "^5.8.21",
+    "gulp": "^3.9.0",
+    "gulp-babel": "^5.2.0",
+    "gulp-esdoc": "^0.1.0",
+    "gulp-gh-pages": "^0.5.4",
+    "gulp-sourcemaps": "^1.5.2",
+    "babel-preset-es2015": "^6.0.12",
+    "babelify": "^7.2.0",
+    "browserify": "^13.0.0",
+    "vinyl-buffer": "^1.0.0",
+    "vinyl-source-stream": "^1.1.0",
+    "gulp-gl2js": "git://github.com/bengfarrell/gulp-gl2js.git"
+  },
+  "browserify": { "transform": [ "babelify" ] }
+}
