@@ -82,6 +82,13 @@ var _class = function (_HTMLElement) {
             this._doubleSource = '';
 
             /**
+             * use camera
+             * @type {boolean}
+             * @private
+             */
+            this._useCamera = false;
+
+            /**
              * refresh interval when using the canvas for display
              * @type {int}
              * @default 0 ms
@@ -137,6 +144,12 @@ var _class = function (_HTMLElement) {
 
             if (this.hasAttribute('src')) {
                 this._doubleSource = this.getAttribute('src');
+            }
+
+            if (this.hasAttribute('useCamera') || this.hasAttribute('usecamera')) {
+                this._useCamera = true;
+            } else {
+                this._useCamera = false;
             }
 
             if (this.hasAttribute('canvasRefreshInterval')) {
@@ -223,9 +236,12 @@ var _class = function (_HTMLElement) {
                 return;
             }
             this._doubleSource = src;
-            this.dom.leftVideo.webglProperties.vertexShader = _shaders2.default.riftshader.vertex;
-            this.dom.leftVideo.webglProperties.fragmentShader = _shaders2.default.riftshader.fragment;
+            //  this.dom.leftVideo.webglProperties.vertexShader = Shaders.riftshader.vertex;
+            //  this.dom.leftVideo.webglProperties.fragmentShader = Shaders.riftshader.fragment;
+
+            this.dom.leftVideo._useCamera = this._useCamera;
             this.dom.leftVideo.source = src;
+
             this.dom.rightVideo.style.display = 'none';
             this.dom.leftVideo.addEventListener('frameupdate', function (event) {
                 return _this2.syncRighttoLeft(event);

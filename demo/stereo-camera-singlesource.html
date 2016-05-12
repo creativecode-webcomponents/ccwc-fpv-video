@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="import" href="../ccwc-rift-video.html">
+    <title></title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+        }
+        ccwc-rift-video {
+            width: 100vw;
+            height: 100vh;
+        }
+    </style>
+</head>
+<body>
+    <ccwc-rift-video useCamera src="0"></ccwc-rift-video>
+</body>
+
+<script>
+    var riftView = document.querySelector('ccwc-rift-video');
+    riftView.addEventListener('click', function(event) {
+        if(event.currentTarget.requestFullscreen) {
+            event.currentTarget.requestFullscreen();
+        } else if(event.currentTarget.mozRequestFullScreen) {
+            event.currentTarget.mozRequestFullScreen();
+        } else if(event.currentTarget.webkitRequestFullscreen) {
+            event.currentTarget.webkitRequestFullscreen();
+        } else if(event.currentTarget.msRequestFullscreen) {
+            event.currentTarget.msRequestFullscreen();
+        }
+    });
+</script>
+</html>

@@ -28,6 +28,13 @@ export default class extends HTMLElement {
         this._doubleSource = '';
 
         /**
+         * use camera
+         * @type {boolean}
+         * @private
+         */
+        this._useCamera = false;
+
+        /**
          * refresh interval when using the canvas for display
          * @type {int}
          * @default 0 ms
@@ -42,9 +49,12 @@ export default class extends HTMLElement {
     set source(src) {
         if (!src) { return; }
         this._doubleSource = src;
-        this.dom.leftVideo.webglProperties.vertexShader = Shaders.riftshader.vertex;
-        this.dom.leftVideo.webglProperties.fragmentShader = Shaders.riftshader.fragment;
+      //  this.dom.leftVideo.webglProperties.vertexShader = Shaders.riftshader.vertex;
+      //  this.dom.leftVideo.webglProperties.fragmentShader = Shaders.riftshader.fragment;
+
+        this.dom.leftVideo._useCamera = this._useCamera;
         this.dom.leftVideo.source = src;
+
         this.dom.rightVideo.style.display = 'none';
         this.dom.leftVideo.addEventListener('frameupdate', event => this.syncRighttoLeft(event));
         this.dom.leftVideo.addEventListener('webglsetup', event => this.setupShaders(event, 'left'));
@@ -94,6 +104,13 @@ export default class extends HTMLElement {
         if (this.hasAttribute('src')) {
             this._doubleSource = this.getAttribute('src');
         }
+
+        if (this.hasAttribute('useCamera') || this.hasAttribute('usecamera')) {
+            this._useCamera = true;
+        } else {
+            this._useCamera = false;
+        }
+
 
         if (this.hasAttribute('canvasRefreshInterval')) {
             this.canvasRefreshInterval = this.getAttribute('canvasRefreshInterval');
