@@ -1,0 +1,29 @@
+<link rel="import" href="node_modules/ccwc-video/ccwc-glvideo.html">
+<script src="src/ccwc-fpv-video.js"></script>
+<script>
+    CCWCFPVVideo.default.prototype.owner = (document._currentScript || document.currentScript).ownerDocument;
+    document.registerElement('ccwc-fpv-video', CCWCFPVVideo.default);
+</script>
+
+<template>
+    <style>
+        :host {
+            display: inline-block;
+            background-color: black;
+        }
+
+        :host ccwc-video,
+        :host canvas {
+            width: 50%;
+            height: 100%;
+        }
+
+        :host canvas {
+            transform: scaleY(-1);
+        }
+    </style>
+
+    <ccwc-video videoScaleMode="cover" useWebGL useCanvasForDisplay frameDataMode="imagedata" canvasRefreshInterval="20" class="left">
+    </ccwc-video><!--<ccwc-video videoScaleMode="cover" useWebGL useCanvasForDisplay canvasRefreshInterval="20" class="right">
+    </ccwc-video>--><canvas class="right"></canvas>
+</template>

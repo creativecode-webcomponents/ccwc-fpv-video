@@ -1,5 +1,7 @@
 import Shaders from './shaders.es6';
 
+// todo: Rift Barrel effect slightly overshoots by taking the whole video into consideration (even offscreen and hidden in the crop area)
+
 export default class extends HTMLElement {
     /**
      * initialize default class properties
@@ -35,6 +37,20 @@ export default class extends HTMLElement {
         this._useCamera = false;
 
         /**
+         * click to view full screen
+         * @type {boolean}
+         * @default false
+         */
+        this._clickToViewFullScreen = false;
+
+        /**
+         * use oculus rift style barrel effect to even out lens distortion
+         * @type {boolean}
+         * @default false
+         */
+        this._useRiftEffect = false;
+
+        /**
          * refresh interval when using the canvas for display
          * @type {int}
          * @default 0 ms
@@ -49,44 +65,53 @@ export default class extends HTMLElement {
     set source(src) {
         if (!src) { return; }
         this._doubleSource = src;
-      //  this.dom.leftVideo.webglProperties.vertexShader = Shaders.riftshader.vertex;
-      //  this.dom.leftVideo.webglProperties.fragmentShader = Shaders.riftshader.fragment;
-
         this.dom.leftVideo._useCamera = this._useCamera;
         this.dom.leftVideo.source = src;
 
-        this.dom.rightVideo.style.display = 'none';
+        //this.dom.rightVideo.style.display = 'none';
         this.dom.leftVideo.addEventListener('frameupdate', event => this.syncRighttoLeft(event));
-        this.dom.leftVideo.addEventListener('webglsetup', event => this.setupShaders(event, 'left'));
+        this.dom.leftVideo.addEventListener('webglsetup', event => this.setupUniforms('left'));
     }
 
     /**
      * setup vertex and fragment shaders for one, two, or both eyes
-     * @param event
-     * @param eye
+     * @param eye todo: implement separate shaders for each eye when we have multiple sources
      */
-    setupShaders(event, eye) {
-        var HMD = {
-            hResolution: 1280,
-            vResolution: 800,
-            hScreenSize: 0.14976,
-            vScreenSize: 0.0936,
-            interpupillaryDistance: 0.064,
-            lensSeparationDistance: 0.064,
-            eyeToScreenDistance: 0.041,
-            distortionK : [1.0, 0.22, 0.24, 0.0],
-            chromaAbParameter: [ 0.996, -0.004, 1.014, 0.0]
-        };
+    setupShaders(eye) {
+        if (this._useRiftEffect) {
+            this.dom.leftVideo.webglProperties.vertexShader = Shaders.riftshader.vertex;
+            this.dom.leftVideo.webglProperties.fragmentShader = Shaders.riftshader.fragment;
+        }
+    }
 
-        var aspect = HMD.hResolution / (2*HMD.vResolution);
-        var r = -1.0 - (4 * (HMD.hScreenSize/4 - HMD.lensSeparationDistance/2) / HMD.hScreenSize);
-        var distScale = (HMD.distortionK[0] + HMD.distortionK[1] * Math.pow(r,2) + HMD.distortionK[2] * Math.pow(r,4) + HMD.distortionK[3] * Math.pow(r,6));
-        event.detail.properties.renderobj.uniforms.add('hmdWarpParam', '4f', [ HMD.distortionK[0], HMD.distortionK[1], HMD.distortionK[2], HMD.distortionK[3] ]);
-        event.detail.properties.renderobj.uniforms.add('chromAbParam', '4f', [ HMD.chromaAbParameter[0], HMD.chromaAbParameter[1], HMD.chromaAbParameter[2], HMD.chromaAbParameter[3] ]);
-        event.detail.properties.renderobj.uniforms.add('scaleIn', '2f', [1.0, 1.0/aspect]);
-        event.detail.properties.renderobj.uniforms.add('scale', '2f', [1.0/distScale, 1.0*aspect/distScale]);
-        event.detail.properties.renderobj.uniforms.add('lensCenter', '2f', [0.0, 0.0]);
-        event.detail.properties.renderobj.textures.add('texid', this.dom.leftVideo.videoElement);
+    /**
+     * setup vertex and fragment shaders for one, two, or both eyes
+     * @param eye todo: implement separate shaders for each eye when we have multiple sources
+     */
+    setupUniforms(eye) {
+        if (this._useRiftEffect) {
+            var HMD = {
+                hResolution: 1280,
+                vResolution: 800,
+                hScreenSize: 0.14976,
+                vScreenSize: 0.0936,
+                interpupillaryDistance: 0.064,
+                lensSeparationDistance: 0.064,
+                eyeToScreenDistance: 0.041,
+                distortionK : [1.0, 0.22, 0.24, 0.0],
+                chromaAbParameter: [ 0.996, -0.004, 1.014, 0.0]
+            };
+
+            var aspect = HMD.hResolution / (2 * HMD.vResolution);
+            var r = -1.0 - (4 * (HMD.hScreenSize / 4 - HMD.lensSeparationDistance / 2) / HMD.hScreenSize);
+            var distScale = (HMD.distortionK[0] + HMD.distortionK[1] * Math.pow(r, 2) + HMD.distortionK[2] * Math.pow(r, 4) + HMD.distortionK[3] * Math.pow(r, 6));
+            this.dom.leftVideo.webglProperties.renderobj.uniforms.add('hmdWarpParam', '4f', [HMD.distortionK[0], HMD.distortionK[1], HMD.distortionK[2], HMD.distortionK[3]]);
+            this.dom.leftVideo.webglProperties.renderobj.uniforms.add('chromAbParam', '4f', [HMD.chromaAbParameter[0], HMD.chromaAbParameter[1], HMD.chromaAbParameter[2], HMD.chromaAbParameter[3]]);
+            this.dom.leftVideo.webglProperties.renderobj.uniforms.add('scaleIn', '2f', [1.0, 1.0 / aspect]);
+            this.dom.leftVideo.webglProperties.renderobj.uniforms.add('scale', '2f', [1.0 / distScale, 1.0 * aspect / distScale]);
+            this.dom.leftVideo.webglProperties.renderobj.uniforms.add('lensCenter', '2f', [0.0, 0.0]);
+            this.dom.leftVideo.webglProperties.renderobj.textures.add('texid', this.dom.leftVideo.videoElement);
+        }
     }
     /**
      * parse attributes on element
@@ -111,6 +136,13 @@ export default class extends HTMLElement {
             this._useCamera = false;
         }
 
+        if (this.hasAttribute('clickToViewFullScreen')) {
+            this._clickToViewFullScreen = true;
+        }
+
+        if (this.hasAttribute('useRiftEffect') || this.hasAttribute('userifteffect')) {
+            this._useRiftEffect = true;
+        }
 
         if (this.hasAttribute('canvasRefreshInterval')) {
             this.canvasRefreshInterval = this.getAttribute('canvasRefreshInterval');
@@ -136,6 +168,22 @@ export default class extends HTMLElement {
         if (this._doubleSource !== '') {
             this.source = this._doubleSource;
         }
+
+        if (this._clickToViewFullScreen) {
+            this.root.addEventListener('click', event => {
+                if(this.requestFullscreen) {
+                    this.requestFullscreen();
+                } else if(this.mozRequestFullScreen) {
+                    this.mozRequestFullScreen();
+                } else if(this.webkitRequestFullscreen) {
+                    this.webkitRequestFullscreen();
+                } else if(this.msRequestFullscreen) {
+                    this.msRequestFullscreen();
+                }
+            });
+        }
+
+        this.setupShaders('left');
     }
 
         /**

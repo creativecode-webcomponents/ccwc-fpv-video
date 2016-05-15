@@ -1,21 +1,21 @@
 var gulp = require('gulp');
 var sourcemaps = require('gulp-sourcemaps');
 var buffer = require('vinyl-buffer');
-var esdoc = require('gulp-esdoc');
+//var esdoc = require('gulp-esdoc');
 var ghPages = require('gulp-gh-pages');
 var browserify = require('browserify');
 var babelify = require('babelify');
 var source = require('vinyl-source-stream');
 var gl2js = require('gulp-gl2js');
 
-gulp.task('ccwc-rift-video', function () {
+gulp.task('ccwc-fpv-video', function () {
     return browserify({
-        entries: 'src/ccwc-rift-video.es6',
-        standalone: 'CCWCRiftVideo',
+        entries: 'src/ccwc-fpv-video.es6',
+        standalone: 'CCWCFPVVideo',
         extensions: ['es2015'], debug: true})
         .transform(babelify)
         .bundle()
-        .pipe(source('ccwc-rift-video.js'))
+        .pipe(source('ccwc-fpv-video.js'))
         .pipe(buffer())
         .pipe(sourcemaps.init({loadMaps: true}))
         .pipe(sourcemaps.write('./'))
@@ -29,4 +29,4 @@ gulp.task('shaders', function() {
 });
 
 
-gulp.task('default', ['shaders', 'ccwc-rift-video']);
+gulp.task('default', ['shaders', 'ccwc-fpv-video']);

@@ -1,4 +1,4 @@
-(function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.CCWCRiftVideo = f()}})(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+(function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.CCWCFPVVideo = f()}})(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 'use strict';
 
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
@@ -89,6 +89,20 @@ var _class = function (_HTMLElement) {
             this._useCamera = false;
 
             /**
+             * click to view full screen
+             * @type {boolean}
+             * @default false
+             */
+            this._clickToViewFullScreen = false;
+
+            /**
+             * use oculus rift style barrel effect to even out lens distortion
+             * @type {boolean}
+             * @default false
+             */
+            this._useRiftEffect = false;
+
+            /**
              * refresh interval when using the canvas for display
              * @type {int}
              * @default 0 ms
@@ -100,31 +114,46 @@ var _class = function (_HTMLElement) {
 
         /**
          * setup vertex and fragment shaders for one, two, or both eyes
-         * @param event
-         * @param eye
+         * @param eye todo: implement separate shaders for each eye when we have multiple sources
          */
-        value: function setupShaders(event, eye) {
-            var HMD = {
-                hResolution: 1280,
-                vResolution: 800,
-                hScreenSize: 0.14976,
-                vScreenSize: 0.0936,
-                interpupillaryDistance: 0.064,
-                lensSeparationDistance: 0.064,
-                eyeToScreenDistance: 0.041,
-                distortionK: [1.0, 0.22, 0.24, 0.0],
-                chromaAbParameter: [0.996, -0.004, 1.014, 0.0]
-            };
+        value: function setupShaders(eye) {
+            if (this._useRiftEffect) {
+                this.dom.leftVideo.webglProperties.vertexShader = _shaders2.default.riftshader.vertex;
+                this.dom.leftVideo.webglProperties.fragmentShader = _shaders2.default.riftshader.fragment;
+            }
+        }
 
-            var aspect = HMD.hResolution / (2 * HMD.vResolution);
-            var r = -1.0 - 4 * (HMD.hScreenSize / 4 - HMD.lensSeparationDistance / 2) / HMD.hScreenSize;
-            var distScale = HMD.distortionK[0] + HMD.distortionK[1] * Math.pow(r, 2) + HMD.distortionK[2] * Math.pow(r, 4) + HMD.distortionK[3] * Math.pow(r, 6);
-            event.detail.properties.renderobj.uniforms.add('hmdWarpParam', '4f', [HMD.distortionK[0], HMD.distortionK[1], HMD.distortionK[2], HMD.distortionK[3]]);
-            event.detail.properties.renderobj.uniforms.add('chromAbParam', '4f', [HMD.chromaAbParameter[0], HMD.chromaAbParameter[1], HMD.chromaAbParameter[2], HMD.chromaAbParameter[3]]);
-            event.detail.properties.renderobj.uniforms.add('scaleIn', '2f', [1.0, 1.0 / aspect]);
-            event.detail.properties.renderobj.uniforms.add('scale', '2f', [1.0 / distScale, 1.0 * aspect / distScale]);
-            event.detail.properties.renderobj.uniforms.add('lensCenter', '2f', [0.0, 0.0]);
-            event.detail.properties.renderobj.textures.add('texid', this.dom.leftVideo.videoElement);
+        /**
+         * setup vertex and fragment shaders for one, two, or both eyes
+         * @param eye todo: implement separate shaders for each eye when we have multiple sources
+         */
+
+    }, {
+        key: 'setupUniforms',
+        value: function setupUniforms(eye) {
+            if (this._useRiftEffect) {
+                var HMD = {
+                    hResolution: 1280,
+                    vResolution: 800,
+                    hScreenSize: 0.14976,
+                    vScreenSize: 0.0936,
+                    interpupillaryDistance: 0.064,
+                    lensSeparationDistance: 0.064,
+                    eyeToScreenDistance: 0.041,
+                    distortionK: [1.0, 0.22, 0.24, 0.0],
+                    chromaAbParameter: [0.996, -0.004, 1.014, 0.0]
+                };
+
+                var aspect = HMD.hResolution / (2 * HMD.vResolution);
+                var r = -1.0 - 4 * (HMD.hScreenSize / 4 - HMD.lensSeparationDistance / 2) / HMD.hScreenSize;
+                var distScale = HMD.distortionK[0] + HMD.distortionK[1] * Math.pow(r, 2) + HMD.distortionK[2] * Math.pow(r, 4) + HMD.distortionK[3] * Math.pow(r, 6);
+                this.dom.leftVideo.webglProperties.renderobj.uniforms.add('hmdWarpParam', '4f', [HMD.distortionK[0], HMD.distortionK[1], HMD.distortionK[2], HMD.distortionK[3]]);
+                this.dom.leftVideo.webglProperties.renderobj.uniforms.add('chromAbParam', '4f', [HMD.chromaAbParameter[0], HMD.chromaAbParameter[1], HMD.chromaAbParameter[2], HMD.chromaAbParameter[3]]);
+                this.dom.leftVideo.webglProperties.renderobj.uniforms.add('scaleIn', '2f', [1.0, 1.0 / aspect]);
+                this.dom.leftVideo.webglProperties.renderobj.uniforms.add('scale', '2f', [1.0 / distScale, 1.0 * aspect / distScale]);
+                this.dom.leftVideo.webglProperties.renderobj.uniforms.add('lensCenter', '2f', [0.0, 0.0]);
+                this.dom.leftVideo.webglProperties.renderobj.textures.add('texid', this.dom.leftVideo.videoElement);
+            }
         }
         /**
          * parse attributes on element
@@ -152,6 +181,14 @@ var _class = function (_HTMLElement) {
                 this._useCamera = false;
             }
 
+            if (this.hasAttribute('clickToViewFullScreen')) {
+                this._clickToViewFullScreen = true;
+            }
+
+            if (this.hasAttribute('useRiftEffect') || this.hasAttribute('userifteffect')) {
+                this._useRiftEffect = true;
+            }
+
             if (this.hasAttribute('canvasRefreshInterval')) {
                 this.canvasRefreshInterval = this.getAttribute('canvasRefreshInterval');
             }
@@ -164,6 +201,8 @@ var _class = function (_HTMLElement) {
          * @private
          */
         value: function attachedCallback() {
+            var _this2 = this;
+
             this.root = this.createShadowRoot();
             var template = this.owner.querySelector("template");
             var clone = document.importNode(template.content, true);
@@ -178,6 +217,22 @@ var _class = function (_HTMLElement) {
             if (this._doubleSource !== '') {
                 this.source = this._doubleSource;
             }
+
+            if (this._clickToViewFullScreen) {
+                this.root.addEventListener('click', function (event) {
+                    if (_this2.requestFullscreen) {
+                        _this2.requestFullscreen();
+                    } else if (_this2.mozRequestFullScreen) {
+                        _this2.mozRequestFullScreen();
+                    } else if (_this2.webkitRequestFullscreen) {
+                        _this2.webkitRequestFullscreen();
+                    } else if (_this2.msRequestFullscreen) {
+                        _this2.msRequestFullscreen();
+                    }
+                });
+            }
+
+            this.setupShaders('left');
         }
 
         /**
@@ -230,24 +285,21 @@ var _class = function (_HTMLElement) {
          * @param {string | int} src video source uri
          */
         set: function set(src) {
-            var _this2 = this;
+            var _this3 = this;
 
             if (!src) {
                 return;
             }
             this._doubleSource = src;
-            //  this.dom.leftVideo.webglProperties.vertexShader = Shaders.riftshader.vertex;
-            //  this.dom.leftVideo.webglProperties.fragmentShader = Shaders.riftshader.fragment;
-
             this.dom.leftVideo._useCamera = this._useCamera;
             this.dom.leftVideo.source = src;
 
-            this.dom.rightVideo.style.display = 'none';
+            //this.dom.rightVideo.style.display = 'none';
             this.dom.leftVideo.addEventListener('frameupdate', function (event) {
-                return _this2.syncRighttoLeft(event);
+                return _this3.syncRighttoLeft(event);
             });
             this.dom.leftVideo.addEventListener('webglsetup', function (event) {
-                return _this2.setupShaders(event, 'left');
+                return _this3.setupUniforms('left');
             });
         }
     }]);
@@ -274,4 +326,4 @@ exports.default = {
 });
 
 
-//# sourceMappingURL=ccwc-rift-video.js.map
+//# sourceMappingURL=ccwc-fpv-video.js.map
