@@ -43,6 +43,8 @@ function _inherits(subClass, superClass) {
     }subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } });if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass;
 }
 
+// todo: Rift Barrel effect slightly overshoots by taking the whole video into consideration (even offscreen and hidden in the crop area)
+
 var _class = function (_HTMLElement) {
     _inherits(_class, _HTMLElement);
 
@@ -110,17 +112,9 @@ var _class = function (_HTMLElement) {
             this.canvasRefreshInterval = 0;
         }
     }, {
-        key: 'setupShaders',
-
-        /**
-         * setup vertex and fragment shaders for one, two, or both eyes
-         * @param eye todo: implement separate shaders for each eye when we have multiple sources
-         */
-        value: function setupShaders(eye) {
-            if (this._useRiftEffect) {
-                this.dom.leftVideo.webglProperties.vertexShader = _shaders2.default.riftshader.vertex;
-                this.dom.leftVideo.webglProperties.fragmentShader = _shaders2.default.riftshader.fragment;
-            }
+        key: 'onResize',
+        value: function onResize() {
+            this.updateUniforms('left');
         }
 
         /**
@@ -129,12 +123,59 @@ var _class = function (_HTMLElement) {
          */
 
     }, {
+        key: 'setupShaders',
+        value: function setupShaders(eye) {
+            if (this._useRiftEffect) {
+                this.dom.leftVideo.webglProperties.vertexShader = _shaders2.default.riftshader.vertex;
+                this.dom.leftVideo.webglProperties.fragmentShader = _shaders2.default.riftshader.fragment;
+            }
+        }
+    }, {
         key: 'setupUniforms',
         value: function setupUniforms(eye) {
+            /*if (this._useRiftEffect) {
+                this.dom.leftVideo.webglProperties.renderobj.uniforms.add('hmdWarpParam', '4f', [0.0, 0.0, 0.0, 0.0]);
+                this.dom.leftVideo.webglProperties.renderobj.uniforms.add('chromAbParam', '4f', [0.0, 0.0, 0.0, 0.0]);
+                this.dom.leftVideo.webglProperties.renderobj.uniforms.add('scaleIn', '2f', [1.0, 1.0]);
+                this.dom.leftVideo.webglProperties.renderobj.uniforms.add('scale', '2f', [1.0, 1.0]);
+                this.dom.leftVideo.webglProperties.renderobj.uniforms.add('lensCenter', '2f', [0.0, 0.0]);
+            }*/
+            var HMD = {
+                hResolution: 1280, //this.width/2,
+                vResolution: 800, //this.height,
+                hScreenSize: 0.14976,
+                vScreenSize: 0.0936,
+                interpupillaryDistance: 0.064,
+                lensSeparationDistance: 0.064,
+                eyeToScreenDistance: 0.041,
+                distortionK: [1.0, 0.22, 0.24, 0.0],
+                chromaAbParameter: [0.996, -0.004, 1.014, 0.0]
+            };
+
+            var aspect = HMD.hResolution / (2 * HMD.vResolution);
+            var r = -1.0 - 4 * (HMD.hScreenSize / 4 - HMD.lensSeparationDistance / 2) / HMD.hScreenSize;
+            var distScale = HMD.distortionK[0] + HMD.distortionK[1] * Math.pow(r, 2) + HMD.distortionK[2] * Math.pow(r, 4) + HMD.distortionK[3] * Math.pow(r, 6);
+            this.dom.leftVideo.webglProperties.renderobj.uniforms.add('hmdWarpParam', '4f', [HMD.distortionK[0], HMD.distortionK[1], HMD.distortionK[2], HMD.distortionK[3]]);
+            this.dom.leftVideo.webglProperties.renderobj.uniforms.add('chromAbParam', '4f', [HMD.chromaAbParameter[0], HMD.chromaAbParameter[1], HMD.chromaAbParameter[2], HMD.chromaAbParameter[3]]);
+            this.dom.leftVideo.webglProperties.renderobj.uniforms.add('scaleIn', '2f', [1.0, 1.0 / aspect]);
+            this.dom.leftVideo.webglProperties.renderobj.uniforms.add('scale', '2f', [1.0 / distScale, 1.0 * aspect / distScale]);
+            this.dom.leftVideo.webglProperties.renderobj.uniforms.add('lensCenter', '2f', [0.0, 0.0]);
+
+            this.dom.leftVideo.webglProperties.renderobj.textures.add('texid', this.dom.leftVideo.videoElement);
+        }
+
+        /**
+         * setup vertex and fragment shaders for one, two, or both eyes
+         * @param eye todo: implement separate shaders for each eye when we have multiple sources
+         */
+
+    }, {
+        key: 'updateUniforms',
+        value: function updateUniforms(eye) {
             if (this._useRiftEffect) {
                 var HMD = {
-                    hResolution: 1280,
-                    vResolution: 800,
+                    hResolution: 1280, //this.width/2,
+                    vResolution: 800, //this.height,
                     hScreenSize: 0.14976,
                     vScreenSize: 0.0936,
                     interpupillaryDistance: 0.064,
@@ -147,12 +188,11 @@ var _class = function (_HTMLElement) {
                 var aspect = HMD.hResolution / (2 * HMD.vResolution);
                 var r = -1.0 - 4 * (HMD.hScreenSize / 4 - HMD.lensSeparationDistance / 2) / HMD.hScreenSize;
                 var distScale = HMD.distortionK[0] + HMD.distortionK[1] * Math.pow(r, 2) + HMD.distortionK[2] * Math.pow(r, 4) + HMD.distortionK[3] * Math.pow(r, 6);
-                this.dom.leftVideo.webglProperties.renderobj.uniforms.add('hmdWarpParam', '4f', [HMD.distortionK[0], HMD.distortionK[1], HMD.distortionK[2], HMD.distortionK[3]]);
-                this.dom.leftVideo.webglProperties.renderobj.uniforms.add('chromAbParam', '4f', [HMD.chromaAbParameter[0], HMD.chromaAbParameter[1], HMD.chromaAbParameter[2], HMD.chromaAbParameter[3]]);
-                this.dom.leftVideo.webglProperties.renderobj.uniforms.add('scaleIn', '2f', [1.0, 1.0 / aspect]);
-                this.dom.leftVideo.webglProperties.renderobj.uniforms.add('scale', '2f', [1.0 / distScale, 1.0 * aspect / distScale]);
-                this.dom.leftVideo.webglProperties.renderobj.uniforms.add('lensCenter', '2f', [0.0, 0.0]);
-                this.dom.leftVideo.webglProperties.renderobj.textures.add('texid', this.dom.leftVideo.videoElement);
+                this.dom.leftVideo.webglProperties.renderobj.uniforms.update('hmdWarpParam', '4f', [HMD.distortionK[0], HMD.distortionK[1], HMD.distortionK[2], HMD.distortionK[3]]);
+                this.dom.leftVideo.webglProperties.renderobj.uniforms.update('chromAbParam', '4f', [HMD.chromaAbParameter[0], HMD.chromaAbParameter[1], HMD.chromaAbParameter[2], HMD.chromaAbParameter[3]]);
+                this.dom.leftVideo.webglProperties.renderobj.uniforms.update('scaleIn', '2f', [1.0, 1.0 / aspect]);
+                this.dom.leftVideo.webglProperties.renderobj.uniforms.update('scale', '2f', [1.0 / distScale, 1.0 * aspect / distScale]);
+                this.dom.leftVideo.webglProperties.renderobj.uniforms.update('lensCenter', '2f', [0.0, 0.0]);
             }
         }
         /**
@@ -214,6 +254,10 @@ var _class = function (_HTMLElement) {
             this.dom.rightCanvas = this.root.querySelector('canvas.right');
             this.dom.rightCanvasContext = this.dom.rightCanvas.getContext('2d');
 
+            window.addEventListener('resize', function (e) {
+                _this2.onResize();
+            });
+
             if (this._doubleSource !== '') {
                 this.source = this._doubleSource;
             }
@@ -233,6 +277,10 @@ var _class = function (_HTMLElement) {
             }
 
             this.setupShaders('left');
+
+            setTimeout(function () {
+                _this2.onResize();
+            }, 100);
         }
 
         /**
@@ -318,7 +366,7 @@ Object.defineProperty(exports, "__esModule", {
 exports.default = {
   "riftshader": {
     "fragment": "precision mediump float;  uniform vec2 scale; uniform vec2 scaleIn; uniform vec2 lensCenter; uniform vec4 hmdWarpParam; uniform vec4 chromAbParam; uniform sampler2D texid; varying vec2 v_texCoord;  void main(void) {   vec2 uv = vec2(v_texCoord*2.0)-1.0;   vec2 theta = (uv-lensCenter)*scaleIn;   float rSq = theta.x*theta.x + theta.y*theta.y;   vec2 rvector = theta*(hmdWarpParam.x + hmdWarpParam.y*rSq + hmdWarpParam.z*rSq*rSq + hmdWarpParam.w*rSq*rSq*rSq);   vec2 rBlue = rvector * (chromAbParam.z + chromAbParam.w * rSq);   vec2 tcBlue = (lensCenter + scale * rBlue);   tcBlue = (tcBlue+1.0)/2.0;    if (any(bvec2(clamp(tcBlue, vec2(0.0,0.0), vec2(1.0,1.0))-tcBlue))) {     gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);     return;   }    vec2 tcGreen = lensCenter + scale * rvector;   tcGreen = (tcGreen+1.0)/2.0;   vec2 rRed = rvector * (chromAbParam.x + chromAbParam.y * rSq);   vec2 tcRed = lensCenter + scale * rRed;   tcRed = (tcRed+1.0)/2.0;   gl_FragColor = vec4(texture2D(texid, tcRed).r, texture2D(texid, tcGreen).g, texture2D(texid, tcBlue).b, 1); } ",
-    "vertex": "attribute vec2 a_position; attribute vec2 a_texCoord; uniform vec2 u_resolution; varying vec2 v_texCoord;  void main() {     vec2 zeroToOne = a_position / u_resolution;     vec2 zeroToTwo = zeroToOne * 2.0;     vec2 clipSpace = zeroToTwo - 1.0;     gl_Position = vec4(clipSpace * vec2(1, -1), 0, 1);     v_texCoord = a_texCoord; }"
+    "vertex": "attribute vec2 a_position; attribute vec2 a_texCoord; uniform vec2 u_resolution; varying vec2 v_texCoord;  void main() {     vec2 zeroToOne = a_position / u_resolution;     vec2 zeroToTwo = zeroToOne * 2.0;     vec2 clipSpace = zeroToTwo - 1.0;     gl_Position = vec4(clipSpace.x * 1.0, clipSpace.y * -1.0, 0.0, 1.0);     v_texCoord = a_texCoord; }"
   }
 };
 

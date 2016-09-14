@@ -73,6 +73,10 @@ export default class extends HTMLElement {
         this.dom.leftVideo.addEventListener('webglsetup', event => this.setupUniforms('left'));
     }
 
+    onResize() {
+        this.updateUniforms('left');
+    }
+
     /**
      * setup vertex and fragment shaders for one, two, or both eyes
      * @param eye todo: implement separate shaders for each eye when we have multiple sources
@@ -84,15 +88,47 @@ export default class extends HTMLElement {
         }
     }
 
+    setupUniforms(eye) {
+        /*if (this._useRiftEffect) {
+            this.dom.leftVideo.webglProperties.renderobj.uniforms.add('hmdWarpParam', '4f', [0.0, 0.0, 0.0, 0.0]);
+            this.dom.leftVideo.webglProperties.renderobj.uniforms.add('chromAbParam', '4f', [0.0, 0.0, 0.0, 0.0]);
+            this.dom.leftVideo.webglProperties.renderobj.uniforms.add('scaleIn', '2f', [1.0, 1.0]);
+            this.dom.leftVideo.webglProperties.renderobj.uniforms.add('scale', '2f', [1.0, 1.0]);
+            this.dom.leftVideo.webglProperties.renderobj.uniforms.add('lensCenter', '2f', [0.0, 0.0]);
+        }*/
+        var HMD = {
+            hResolution: 1280, //this.width/2,
+            vResolution: 800, //this.height,
+            hScreenSize: 0.14976,
+            vScreenSize: 0.0936,
+            interpupillaryDistance: 0.064,
+            lensSeparationDistance: 0.064,
+            eyeToScreenDistance: 0.041,
+            distortionK : [1.0, 0.22, 0.24, 0.0],
+            chromaAbParameter: [ 0.996, -0.004, 1.014, 0.0]
+        };
+
+        var aspect = HMD.hResolution / (2 * HMD.vResolution);
+        var r = -1.0 - (4 * (HMD.hScreenSize / 4 - HMD.lensSeparationDistance / 2) / HMD.hScreenSize);
+        var distScale = (HMD.distortionK[0] + HMD.distortionK[1] * Math.pow(r, 2) + HMD.distortionK[2] * Math.pow(r, 4) + HMD.distortionK[3] * Math.pow(r, 6));
+        this.dom.leftVideo.webglProperties.renderobj.uniforms.add('hmdWarpParam', '4f', [HMD.distortionK[0], HMD.distortionK[1], HMD.distortionK[2], HMD.distortionK[3]]);
+        this.dom.leftVideo.webglProperties.renderobj.uniforms.add('chromAbParam', '4f', [HMD.chromaAbParameter[0], HMD.chromaAbParameter[1], HMD.chromaAbParameter[2], HMD.chromaAbParameter[3]]);
+        this.dom.leftVideo.webglProperties.renderobj.uniforms.add('scaleIn', '2f', [1.0, 1.0 / aspect]);
+        this.dom.leftVideo.webglProperties.renderobj.uniforms.add('scale', '2f', [1.0 / distScale, 1.0 * aspect / distScale]);
+        this.dom.leftVideo.webglProperties.renderobj.uniforms.add('lensCenter', '2f', [0.0, 0.0]);
+
+        this.dom.leftVideo.webglProperties.renderobj.textures.add('texid', this.dom.leftVideo.videoElement);
+    }
+
     /**
      * setup vertex and fragment shaders for one, two, or both eyes
      * @param eye todo: implement separate shaders for each eye when we have multiple sources
      */
-    setupUniforms(eye) {
+    updateUniforms(eye) {
         if (this._useRiftEffect) {
             var HMD = {
-                hResolution: 1280,
-                vResolution: 800,
+                hResolution: 1280, //this.width/2,
+                vResolution: 800, //this.height,
                 hScreenSize: 0.14976,
                 vScreenSize: 0.0936,
                 interpupillaryDistance: 0.064,
@@ -105,12 +141,11 @@ export default class extends HTMLElement {
             var aspect = HMD.hResolution / (2 * HMD.vResolution);
             var r = -1.0 - (4 * (HMD.hScreenSize / 4 - HMD.lensSeparationDistance / 2) / HMD.hScreenSize);
             var distScale = (HMD.distortionK[0] + HMD.distortionK[1] * Math.pow(r, 2) + HMD.distortionK[2] * Math.pow(r, 4) + HMD.distortionK[3] * Math.pow(r, 6));
-            this.dom.leftVideo.webglProperties.renderobj.uniforms.add('hmdWarpParam', '4f', [HMD.distortionK[0], HMD.distortionK[1], HMD.distortionK[2], HMD.distortionK[3]]);
-            this.dom.leftVideo.webglProperties.renderobj.uniforms.add('chromAbParam', '4f', [HMD.chromaAbParameter[0], HMD.chromaAbParameter[1], HMD.chromaAbParameter[2], HMD.chromaAbParameter[3]]);
-            this.dom.leftVideo.webglProperties.renderobj.uniforms.add('scaleIn', '2f', [1.0, 1.0 / aspect]);
-            this.dom.leftVideo.webglProperties.renderobj.uniforms.add('scale', '2f', [1.0 / distScale, 1.0 * aspect / distScale]);
-            this.dom.leftVideo.webglProperties.renderobj.uniforms.add('lensCenter', '2f', [0.0, 0.0]);
-            this.dom.leftVideo.webglProperties.renderobj.textures.add('texid', this.dom.leftVideo.videoElement);
+            this.dom.leftVideo.webglProperties.renderobj.uniforms.update('hmdWarpParam', '4f', [HMD.distortionK[0], HMD.distortionK[1], HMD.distortionK[2], HMD.distortionK[3]]);
+            this.dom.leftVideo.webglProperties.renderobj.uniforms.update('chromAbParam', '4f', [HMD.chromaAbParameter[0], HMD.chromaAbParameter[1], HMD.chromaAbParameter[2], HMD.chromaAbParameter[3]]);
+            this.dom.leftVideo.webglProperties.renderobj.uniforms.update('scaleIn', '2f', [1.0, 1.0 / aspect]);
+            this.dom.leftVideo.webglProperties.renderobj.uniforms.update('scale', '2f', [1.0 / distScale, 1.0 * aspect / distScale]);
+            this.dom.leftVideo.webglProperties.renderobj.uniforms.update('lensCenter', '2f', [0.0, 0.0]);
         }
     }
     /**
@@ -165,6 +200,8 @@ export default class extends HTMLElement {
         this.dom.rightCanvas = this.root.querySelector('canvas.right');
         this.dom.rightCanvasContext = this.dom.rightCanvas.getContext('2d');
 
+        window.addEventListener('resize', e => { this.onResize(); });
+
         if (this._doubleSource !== '') {
             this.source = this._doubleSource;
         }
@@ -184,6 +221,10 @@ export default class extends HTMLElement {
         }
 
         this.setupShaders('left');
+
+        setTimeout( () => {
+            this.onResize();
+        }, 100);
     }
 
         /**
